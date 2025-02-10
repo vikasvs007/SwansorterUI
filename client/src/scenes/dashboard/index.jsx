@@ -57,6 +57,49 @@ const Dashboard = () => {
     },
   ];
 
+  const handleDownloadReports = () => {
+    if (!data) return;
+
+    const reportData = {
+      totalCustomers: data.totalCustomers,
+      yearlyData: data.yearlyData,
+      dailyData: data.dailyData,
+      monthlyData: data.monthlyData,
+      salesByCategory: data.salesByCategory,
+      transactions: data.transactions
+    };
+
+    // Create CSV content
+    const csvContent = [
+      "Report Generated on: " + new Date().toLocaleString(),
+      "\nOverall Statistics",
+      `Total Customers,${reportData.totalCustomers}`,
+      `Total Sales,${data.yearlySalesTotal}`,
+      `Sales Today,${data.todayStats.totalSales}`,
+      `Monthly Sales,${data.thisMonthStats.totalSales}`,
+      "\nMonthly Data",
+      "Month,Total Sales,Total Units",
+      ...reportData.monthlyData.map(item => 
+        `${item.month},${item.totalSales},${item.totalUnits}`
+      ),
+      "\nRecent Transactions",
+      "ID,User ID,Amount,Products,Date",
+      ...reportData.transactions.map(transaction => 
+        `${transaction._id},${transaction.userId},${transaction.cost},${transaction.products.length},${new Date(transaction.createdAt).toLocaleDateString()}`
+      )
+    ].join("\n");
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `dashboard_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Box m="1.5rem 2.5rem">
       <FlexBetween>
@@ -71,6 +114,7 @@ const Dashboard = () => {
               fontWeight: "bold",
               padding: "10px 20px",
             }}
+            onClick={handleDownloadReports}
           >
             <DownloadOutlined sx={{ mr: "10px" }} />
             Download Reports

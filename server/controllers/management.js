@@ -11,6 +11,55 @@ export const getAdmins = async (req, res) => {
   }
 };
 
+export const createAdmin = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      city,
+      state,
+      country,
+      occupation,
+      phoneNumber,
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    // Check if admin already exists
+    const existingAdmin = await User.findOne({ email });
+    if (existingAdmin) {
+      return res.status(400).json({ message: "Admin with this email already exists" });
+    }
+
+    const newAdmin = new User({
+      name,
+      email,
+      password,
+      city,
+      state,
+      country,
+      occupation,
+      phoneNumber,
+      role: "admin", // Ensure role is set to admin
+    });
+
+    const savedAdmin = await newAdmin.save();
+    
+    // Remove password from response
+    const adminResponse = { ...savedAdmin._doc };
+    delete adminResponse.password;
+
+    res.status(201).json(adminResponse);
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getUserPerformance = async (req, res) => {
   try {
     const { id } = req.params;
