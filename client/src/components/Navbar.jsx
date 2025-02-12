@@ -4,13 +4,14 @@ import {
   DarkModeOutlined,
   Menu as MenuIcon,
   Search,
-  SettingsOutlined,
   ArrowDropDownOutlined,
+  Person as PersonIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
 } from "@mui/icons-material";
 import FlexBetween from "components/FlexBetween";
 import { useDispatch } from "react-redux";
 import { setMode } from "state";
-import profileImage from "assets/profile.jpeg";
 import {
   AppBar,
   Button,
@@ -22,16 +23,37 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  Avatar,
+  Divider,
+  ListItemIcon,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = ({ user, isSidebarOpen, setIsSidebarOpen }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const isOpen = Boolean(anchorEl);
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
+
+  const handleProfileClick = () => {
+    handleClose();
+    navigate("/profile");
+  };
+
+  const handleAccountClick = () => {
+    handleClose();
+    navigate("/account-settings");
+  };
+
+  const handleLogout = () => {
+    handleClose();
+    // Add logout logic here
+  };
 
   return (
     <AppBar
@@ -69,43 +91,34 @@ const Navbar = ({ user, isSidebarOpen, setIsSidebarOpen }) => {
               <LightModeOutlined sx={{ fontSize: "25px" }} />
             )}
           </IconButton>
-          <IconButton>
-            <SettingsOutlined sx={{ fontSize: "25px" }} />
-          </IconButton>
-
-          <FlexBetween>
+          <NotificationBell />
+          <Box>
             <Button
               onClick={handleClick}
               sx={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
                 textTransform: "none",
                 gap: "1rem",
               }}
             >
-              <Box
-                component="img"
-                alt="profile"
-                src={profileImage}
-                height="32px"
-                width="32px"
-                borderRadius="50%"
-                sx={{ objectFit: "cover" }}
+              <Avatar
+                src={user?.photo || "/assets/profile.jpeg"}
+                sx={{ width: 32, height: 32 }}
               />
-              <Box textAlign="left">
+              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                 <Typography
-                  fontWeight="bold"
-                  fontSize="0.85rem"
+                  variant="subtitle2"
+                  component="span"
                   sx={{ color: theme.palette.secondary[100] }}
                 >
-                  {user.name}
+                  Hi, {user?.name?.split(' ')[0] || 'SwanSorter'}
                 </Typography>
                 <Typography
-                  fontSize="0.75rem"
+                  variant="body2"
                   sx={{ color: theme.palette.secondary[200] }}
                 >
-                  {user.occupation}
+                  {user?.email || 'SwanSorter@swansorter.com'}
                 </Typography>
               </Box>
               <ArrowDropDownOutlined
@@ -116,11 +129,55 @@ const Navbar = ({ user, isSidebarOpen, setIsSidebarOpen }) => {
               anchorEl={anchorEl}
               open={isOpen}
               onClose={handleClose}
-              anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+              onClick={handleClose}
+              PaperProps={{
+                sx: {
+                  mt: 1,
+                  minWidth: 220,
+                  backgroundColor: theme.palette.background.alt,
+                }
+              }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-              <MenuItem onClick={handleClose}>Log Out</MenuItem>
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <FlexBetween>
+                  <Avatar
+                    src={user?.photo || "/assets/profile.jpeg"}
+                    sx={{ width: 40, height: 40 }}
+                  />
+                  <Box sx={{ ml: 2 }}>
+                    <Typography variant="subtitle2" sx={{ color: theme.palette.secondary[100] }}>
+                      {user?.name || 'SwanSorter'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: theme.palette.secondary[200] }}>
+                      {user?.email || 'SwanSorter@swansorter.com'}
+                    </Typography>
+                  </Box>
+                </FlexBetween>
+              </Box>
+              <Divider sx={{ my: 1 }} />
+              <MenuItem onClick={handleProfileClick}>
+                <ListItemIcon>
+                  <PersonIcon fontSize="small" />
+                </ListItemIcon>
+                My Profile
+              </MenuItem>
+              <MenuItem onClick={handleAccountClick}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                Account Setting
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
             </Menu>
-          </FlexBetween>
+          </Box>
         </FlexBetween>
       </Toolbar>
     </AppBar>

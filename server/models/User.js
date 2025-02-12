@@ -20,16 +20,20 @@ const UserSchema = new mongoose.Schema(
       min: 5,
     },
     city: String,
-    state: String,
-    country: String,
-    occupation: String,
-    phoneNumber: String,
-    transactions: Array,
+    phone: String,
+    photo: {
+      type: String,
+      default: "", // URL to the photo
+    },
     role: {
       type: String,
       enum: ["user", "admin", "superadmin"],
       default: "admin",
     },
+    notifications: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Notification'
+    }]
   },
   { timestamps: true }
 );

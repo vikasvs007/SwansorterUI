@@ -9,6 +9,8 @@ import clientRoutes from "./routes/client.js";
 import generalRoutes from "./routes/general.js";
 import managementRoutes from "./routes/management.js";
 import salesRoutes from "./routes/sales.js";
+import notificationRoutes from "./routes/notification.js";
+import testRoutes from "./routes/test.js";
 
 // data imports
 import User from "./models/User.js";
@@ -56,10 +58,12 @@ app.post("/test", (req, res) => {
 });
 
 /* ROUTES */
-app.use("/client", clientRoutes);
-app.use("/general", generalRoutes);
-app.use("/management", managementRoutes);
-app.use("/sales", salesRoutes);
+app.use("/api/client", clientRoutes);
+app.use("/api/general", generalRoutes);
+app.use("/api/management", managementRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/test", testRoutes);
 
 /* MONGOOSE SETUP */
 const PORT = process.env.PORT || 9000;
@@ -74,14 +78,30 @@ mongoose
 
     /* ONLY ADD DATA ONE TIME */
     // Check if data already exists before inserting
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      await AffiliateStat.insertMany(dataAffiliateStat);
-      await OverallStat.insertMany(dataOverallStat);
-      await Product.insertMany(dataProduct);
-      await ProductStat.insertMany(dataProductStat);
-      await Transaction.insertMany(dataTransaction);
-      await User.insertMany(dataUser);
+    const [userCount, overallStatCount] = await Promise.all([
+      User.countDocuments(),
+      OverallStat.countDocuments()
+    ]);
+
+    if (userCount === 0 || overallStatCount === 0) {
+      console.log("Inserting sample data...");
+      await Promise.all([
+        User.deleteMany(),
+        OverallStat.deleteMany(),
+        Product.deleteMany(),
+        ProductStat.deleteMany(),
+        Transaction.deleteMany(),
+        AffiliateStat.deleteMany()
+      ]);
+
+      await Promise.all([
+        User.insertMany(dataUser),
+        OverallStat.insertMany(dataOverallStat),
+        Product.insertMany(dataProduct),
+        ProductStat.insertMany(dataProductStat),
+        Transaction.insertMany(dataTransaction),
+        AffiliateStat.insertMany(dataAffiliateStat)
+      ]);
       console.log("Sample data inserted successfully");
     } else {
       console.log("Data already exists, skipping insertion");

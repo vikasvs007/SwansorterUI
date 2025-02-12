@@ -7,7 +7,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "seed": "node data/seed.js",
+    "add-mock-notifications": "node scripts/addMockNotifications.js",
+    "list-users": "node scripts/listUsers.js",
+    "add-test-notification": "node scripts/addTestNotification.js"
   },
   "keywords": [],
   "author": "",

@@ -1,8 +1,11 @@
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import ProductStat from "../models/ProductStat.js";
 import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
+import Notification from "../models/Notification.js";
 import getCountryIso3 from "country-iso-2-to-3";
+import { createNotificationForAdmins, createNotificationForUser } from "../utils/notificationHelper.js";
 
 export const getProducts = async (req, res) => {
   try {
@@ -54,22 +57,49 @@ export const getTransactions = async (req, res) => {
     };
     const sortFormatted = Boolean(sort) ? generateSort() : {};
 
+    // Get all transactions
     const transactions = await Transaction.find({
       $or: [
         { cost: { $regex: new RegExp(search, "i") } },
-        { userId: { $regex: new RegExp(search, "i") } },
       ],
     })
       .sort(sortFormatted)
       .skip(page * pageSize)
-      .limit(pageSize);
+      .limit(pageSize)
+      .lean();  // Convert to plain JavaScript objects
+
+    // Get all unique userIds
+    const userIds = [...new Set(transactions.map(t => t.userId))];
+    
+    // Find all users that match either ObjectId or string userId
+    const users = await User.find({
+      $or: [
+        { _id: { $in: userIds } },
+        { _id: { $in: userIds.filter(id => mongoose.Types.ObjectId.isValid(id)) } }
+      ]
+    }).lean();
+
+    // Create a map of both string and ObjectId to username
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user._id.toString()] = user.name;
+    });
+
+    // Transform transactions to include username
+    const transactionsWithUsernames = transactions.map(transaction => ({
+      ...transaction,
+      username: userMap[transaction.userId.toString()] || 'Unknown User',
+      userId: transaction.userId // Keep userId for reference
+    }));
 
     const total = await Transaction.countDocuments({
-      name: { $regex: search, $options: "i" },
+      $or: [
+        { cost: { $regex: new RegExp(search, "i") } },
+      ],
     });
 
     res.status(200).json({
-      transactions,
+      transactions: transactionsWithUsernames,
       total,
     });
   } catch (error) {
@@ -216,22 +246,22 @@ export const deleteGeographyData = async (req, res) => {
 
 export const createCustomer = async (req, res) => {
   try {
-    console.log('Creating customer with data:', req.body);
-    // Ensure required fields are present
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ message: "Name and email are required" });
-    }
-
     const newCustomer = new User({
       ...req.body,
-      role: "user" // Ensure role is set to user
+      role: "user",
     });
+
     const savedCustomer = await newCustomer.save();
-    console.log('Customer created successfully:', savedCustomer._id);
+
+    // Create notifications for all admin users about the new customer
+    await createNotificationForAdmins(
+      'new_user',
+      `New customer ${savedCustomer.name} has registered`,
+      'person_add'
+    );
+
     res.status(201).json(savedCustomer);
   } catch (error) {
-    console.error('Error in createCustomer:', error);
     res.status(400).json({ message: error.message });
   }
 };
@@ -292,9 +322,17 @@ export const createProduct = async (req, res) => {
   try {
     const newProduct = new Product(req.body);
     const savedProduct = await newProduct.save();
+
+    // Create notification for admins about new product
+    await createNotificationForAdmins(
+      'alert',
+      `New product ${savedProduct.name} has been added to the catalog`,
+      'inventory'
+    );
+
     res.status(201).json(savedProduct);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(409).json({ message: error.message });
   }
 };
 
@@ -325,9 +363,25 @@ export const createTransaction = async (req, res) => {
   try {
     const newTransaction = new Transaction(req.body);
     const savedTransaction = await newTransaction.save();
+
+    // Create notification for admins about new transaction
+    await createNotificationForAdmins(
+      'new_order',
+      `New transaction of $${savedTransaction.cost} has been made`,
+      'shopping_cart'
+    );
+
+    // Also notify the user who made the transaction
+    await createNotificationForUser(
+      savedTransaction.userId,
+      'new_order',
+      `Your transaction of $${savedTransaction.cost} has been confirmed`,
+      'check_circle'
+    );
+
     res.status(201).json(savedTransaction);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(409).json({ message: error.message });
   }
 };
 
